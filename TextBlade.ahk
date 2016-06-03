@@ -1,7 +1,7 @@
 #InstallKeybdHook
 #SingleInstance force
 
-Global KeyDownDelay = 40
+Global KeyDownDelay = 30
 Global SpaceDownDelay = 60
 
 ; -----------------------
@@ -39,9 +39,9 @@ addKey("b", "}")
 
 ; Top row
 addKey("y", "6",, ["Control", "x"])
-addKey("u", "7")
+addKey("u", "7",, "Home")
 addKey("i", "8",, "Up")
-addKey("o", "9")
+addKey("o", "9",, "End")
 addKey("p", "0")
 
 ; Specials
@@ -58,9 +58,9 @@ addKey(";", ")", """", ["Control", "z"],, "'")
 
 ; Bottom row
 addKey("n", "[",, ["Control", "v"])
-addKey("m", "]")
+addKey("m", "]",, ["Control", "Home"])
 addKey(",", ";", "<")
-addKey(".", ":", ">")
+addKey(".", ":", ">", ["Control", "End"])
 addKey("/", "\", "?", ["Control", "y"])
 
 ; -----------------------
@@ -196,6 +196,9 @@ DoKeyDown(key) {
 	else {
           Send, {Blind}{%edit_key% down}
 	}
+      }
+      else {
+	; Do nothing.
       }
     }
     else {
