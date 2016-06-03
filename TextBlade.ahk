@@ -2,7 +2,7 @@
 #SingleInstance force
 
 Global KeyDownDelay = 30
-Global SpaceDownDelay = 60
+Global SpaceDownDelay = 30
 
 ; -----------------------
 ; START: Left Blade Keys
@@ -39,9 +39,9 @@ addKey("b", "}")
 
 ; Top row
 addKey("y", "6",, ["Control", "x"])
-addKey("u", "7",, "Home")
-addKey("i", "8",, "Up")
-addKey("o", "9",, "End")
+addKey("u", "7",, "Home",,, "Media_Prev")
+addKey("i", "8",, "Up",,, "Volume_Up")
+addKey("o", "9",, "End",,, "Media_Next")
 addKey("p", "0")
 
 ; Specials
@@ -52,14 +52,14 @@ addKey("\", "Delete",,,,"Backspace")
 ; Middle row
 addKey("h", "^",, ["Control", "c"])
 addKey("j", "&",, "Left")
-addKey("k", "*",, "Down")
+addKey("k", "*",, "Down",,, "Volume_Down")
 addKey("l", "(",, "Right")
 addKey(";", ")", """", ["Control", "z"],, "'")
 
 ; Bottom row
 addKey("n", "[",, ["Control", "v"])
 addKey("m", "]",, ["Control", "Home"])
-addKey(",", ";", "<")
+addKey(",", ";", "<",,,, "Media_Play_Pause")
 addKey(".", ":", ">", ["Control", "End"])
 addKey("/", "\", "?", ["Control", "y"])
 
@@ -70,7 +70,7 @@ addKey("/", "\", "?", ["Control", "y"])
 return
 
 ; Add key mappings function.
-addKey(key, green_key, shift_green_key := -1, edit_key := -1, edit_key_up := 1, replace_key := -1) {
+addKey(key, green_key, shift_green_key := -1, edit_key := -1, edit_key_up := 1, replace_key := -1, media_key := -1) {
   global keySet
   the_key := key
   if !isobject(keySet)
@@ -81,7 +81,7 @@ addKey(key, green_key, shift_green_key := -1, edit_key := -1, edit_key_up := 1, 
     the_key := replace_key
   }
 
-  newEntry := {key: the_key, green_key: green_key, has_shifted_green_key: !(shift_green_key = -1), shift_green_key: shift_green_key, has_edit_key: !(edit_key = -1), edit_key: edit_key, edit_key_up: (edit_key_up = 1)}
+  newEntry := {key: the_key, green_key: green_key, has_shifted_green_key: !(shift_green_key = -1), shift_green_key: shift_green_key, has_edit_key: !(edit_key = -1), edit_key: edit_key, edit_key_up: (edit_key_up = 1), has_media_key: !(media_key = -1), media_key: media_key}
   keySet[key] := newEntry
 }
     
@@ -141,6 +141,16 @@ isGreenLayer(delay := 1) {
   }
 }
 
+isMediaLayer() {
+  if GetKeyState("d", "P") and GetKeyState("f", "P") and GetKeyState("s", "P") and GetKeyState("a", "P")
+  {
+    return 1
+  }
+  else {
+    return 0
+  }
+}
+
 isEditLayer() {
   if GetKeyState("d", "P") and GetKeyState("f", "P")
   {
@@ -174,27 +184,27 @@ DoKeyDown(key) {
     }
   }
   else {
-    if isEditLayer() {
-      if keyobject["has_edit_key"] {
-	edit_key := keyobject["edit_key"]
-	if keyobject["edit_key_up"] {
-	  if IsObject(edit_key) {
-	    len := edit_key.Length() + 1
-	    Loop % edit_key.Length() {
-	      tmpkey := edit_key[A_Index]
+    if isMediaLayer() {
+      if keyobject["has_media_key"] {
+	media_key := keyobject["media_key"]
+	if keyobject["media_key_up"] {
+	  if IsObject(media_key) {
+	    len := media_key.Length() + 1
+	    Loop % media_key.Length() {
+	      tmpkey := media_key[A_Index]
 	      Send, {Blind}{%tmpkey% Down}
 	    }
-	    Loop % edit_key.Length() {
-	      tmpkey := edit_key[len - A_Index]
+	    Loop % media_key.Length() {
+	      tmpkey := media_key[len - A_Index]
 	      Send, {Blind}{%tmpkey% Up}
 	    }
           }
 	  else {
-            Send, {Blind}{%edit_key% down}{Blind}{%edit_key% up}
+            Send, {Blind}{%media_key% down}{Blind}{%media_key% up}
 	  }
         }
 	else {
-          Send, {Blind}{%edit_key% down}
+          Send, {Blind}{%media_key% down}
 	}
       }
       else {
@@ -202,7 +212,36 @@ DoKeyDown(key) {
       }
     }
     else {
-      Send, {Blind}{%send_key% down}{%send_key% up}
+      if isEditLayer() {
+        if keyobject["has_edit_key"] {
+  	edit_key := keyobject["edit_key"]
+  	if keyobject["edit_key_up"] {
+  	  if IsObject(edit_key) {
+  	    len := edit_key.Length() + 1
+  	    Loop % edit_key.Length() {
+  	      tmpkey := edit_key[A_Index]
+  	      Send, {Blind}{%tmpkey% Down}
+  	    }
+  	    Loop % edit_key.Length() {
+  	      tmpkey := edit_key[len - A_Index]
+  	      Send, {Blind}{%tmpkey% Up}
+  	    }
+            }
+  	  else {
+              Send, {Blind}{%edit_key% down}{Blind}{%edit_key% up}
+  	  }
+          }
+  	else {
+            Send, {Blind}{%edit_key% down}
+  	}
+        }
+        else {
+  	; Do nothing.
+        }
+      }
+      else {
+        Send, {Blind}{%send_key% down}{%send_key% up}
+      }
     }
   }
 
