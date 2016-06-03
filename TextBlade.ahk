@@ -17,15 +17,15 @@ addKey("t", "5")
 
 ; Middle row
 addKey("a", "!")
-addKey("s", "@", 1, "~")
-addKey("d", "#", 1, "``")
+addKey("s", "@", "~", "Shift", 0)
+addKey("d", "#", "``")
 addKey("f", "$")
 addKey("g", "$")
 
 ; Bottom row
 addKey("z", "+")
-addKey("x", "-", 1, "_")
-addKey("c", "=", 1, "|")
+addKey("x", "-", "_")
+addKey("c", "=", "|")
 addKey("v", "{")
 addKey("b", "}")
 
@@ -38,25 +38,30 @@ addKey("b", "}")
 ; -----------------------
 
 ; Top row
-addKey("y", "6")
+addKey("y", "6",, ["Control", "x"])
 addKey("u", "7")
-addKey("i", "8")
+addKey("i", "8",, "Up")
 addKey("o", "9")
 addKey("p", "0")
 
+; Specials
+addKey("[", "Delete",,,,"Backspace")
+addKey("]", "Delete",,,,"Backspace")
+addKey("\", "Delete",,,,"Backspace")
+
 ; Middle row
-addKey("h", "^")
-addKey("j", "&")
-addKey("k", "*")
-addKey("l", "(")
-addKey(";", ")", 1, """")
+addKey("h", "^",, ["Control", "c"])
+addKey("j", "&",, "Left")
+addKey("k", "*",, "Down")
+addKey("l", "(",, "Right")
+addKey(";", ")", """", ["Control", "z"],, "'")
 
 ; Bottom row
-addKey("n", "+")
-addKey("m", "-")
-addKey(",", "=", 1, "<")
-addKey(".", "{", 1, ">")
-addKey("/", "}", 1, "?")
+addKey("n", "[",, ["Control", "v"])
+addKey("m", "]")
+addKey(",", ";", "<")
+addKey(".", ":", ">")
+addKey("/", "\", "?", ["Control", "y"])
 
 ; -----------------------
 ; END  : Right Blade Keys
@@ -65,13 +70,18 @@ addKey("/", "}", 1, "?")
 return
 
 ; Add key mappings function.
-addKey(key, green_key, has_shifted_green_key := 0, shift_green_key := 0) {
+addKey(key, green_key, shift_green_key := -1, edit_key := -1, edit_key_up := 1, replace_key := -1) {
   global keySet
+  the_key := key
   if !isobject(keySet)
   {
     keySet := {}
   }
-  newEntry := {green_key: green_key, has_shifted_green_key: has_shifted_green_key, shift_green_key: shift_green_key}
+  if (replace_key != -1) {
+    the_key := replace_key
+  }
+
+  newEntry := {key: the_key, green_key: green_key, has_shifted_green_key: !(shift_green_key = -1), shift_green_key: shift_green_key, has_edit_key: !(edit_key = -1), edit_key: edit_key, edit_key_up: (edit_key_up = 1)}
   keySet[key] := newEntry
 }
     
@@ -131,10 +141,21 @@ isGreenLayer(delay := 1) {
   }
 }
 
+isEditLayer() {
+  if GetKeyState("d", "P") and GetKeyState("f", "P")
+  {
+    return 1
+  }
+  else {
+    return 0
+  }
+}
+
 DoKeyDown(key) {
   global eat_space
 
   keyobject := getKey(key)
+  send_key := keyobject["key"]
 
   if !isKeyDown(key) {
     sleep, %KeyDownDelay% ; Delay before sending key.
@@ -153,42 +174,38 @@ DoKeyDown(key) {
     }
   }
   else {
-    Send, {Blind}{%key% down}{%key% up}
-  }
-
-  if GetKeyState(key, "P")
-    setKeyDown(key, 1)
-}
-
-DoModKeyDown(key) {
-  global eat_space
-
-  keyobject := getKey(key)
-
-  if !isKeyDown(key) {
-    sleep, %KeyDownDelay% ; Delay before sending key.
-  }
-  if isGreenLayer() {
-    eat_space := 1
-    gkey := keyobject["green_key"]
-    if GetKeyState("Shift", "P") {
-      if keyobject["has_shifted_green_key"] {
-        gkey := keyobject["shift_green_key"]
+    if isEditLayer() {
+      if keyobject["has_edit_key"] {
+	edit_key := keyobject["edit_key"]
+	if keyobject["edit_key_up"] {
+	  if IsObject(edit_key) {
+	    len := edit_key.Length() + 1
+	    Loop % edit_key.Length() {
+	      tmpkey := edit_key[A_Index]
+	      Send, {Blind}{%tmpkey% Down}
+	    }
+	    Loop % edit_key.Length() {
+	      tmpkey := edit_key[len - A_Index]
+	      Send, {Blind}{%tmpkey% Up}
+	    }
+          }
+	  else {
+            Send, {Blind}{%edit_key% down}{Blind}{%edit_key% up}
+	  }
+        }
+	else {
+          Send, {Blind}{%edit_key% down}
+	}
       }
-      Send, {Blind}{Shift Up}{%gkey% down}{%gkey% up}{Shift Down}
     }
     else {
-      Send, {Blind}{%gkey% down}{%gkey% up}
+      Send, {Blind}{%send_key% down}{%send_key% up}
     }
-  }
-  else {
-    Send, {Blind}{%key% down}{%key% up}
   }
 
   if GetKeyState(key, "P")
     setKeyDown(key, 1)
 }
-
 
 DoKeyUp(key) {
   setKeyDown(key, 0)
@@ -257,6 +274,9 @@ DoKeyUp(key) {
 
 *s up::
   DoKeyUp("s")
+  if GetKeyState("Shift", "D") and !(GetKeyState("Shift", "P")) {
+    Send, {Blind}{Shift Up}
+  }
   return
 
 *d::
@@ -376,6 +396,32 @@ DoKeyUp(key) {
   DoKeyUp("p")
   return
 
+*[::
+  DoKeyDown("[")
+  return
+  
+*[ up::
+   DoKeyUp("[")
+   return
+     
+*]::
+  DoKeyDown("]")
+  return
+
+*] up::
+  DoKeyUp("]")
+  return
+
+*\::
+  DoKeyDown("\")
+  return
+
+*\ up::
+  DoKeyUp("\")
+  return
+
+
+
 ; Middle row
 
 *h::
@@ -459,7 +505,6 @@ DoKeyUp(key) {
 */ up::
   DoKeyUp("/")
   return
-  
 
 ; --------------------------
 ; END  : Right Blade Hotkeys
@@ -493,11 +538,11 @@ DoKeyUp(key) {
   if isGreenLayer(0) {
     eat_tab := 1
     eat_space := 1
-    Send, {Blind}{Esc Down}{Esc Up}
+    Send, {Blind}{Esc Down}{Blind}{Esc Up}
   }
 
   if !eat_tab {
-    Send, {Blind}{Tab Down}{Tab Up}
+    Send, {Blind}{Tab Down}{Blind}{Tab Up}
   }
   eat_tab := 0
   return
