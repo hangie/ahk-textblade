@@ -58,6 +58,7 @@ addKey("j", "&",, "Left")
 addKey("k", "*",, "Down",,, "Volume_Down")
 addKey("l", "(",, "Right")
 addKey(";", ")", """", ["Control", "z"],, "'")
+addKey("'", "Enter",,,, "Enter")
 
 ; Bottom row
 addKey("n", "[",, ["Control", "v"])
@@ -514,6 +515,14 @@ DoKeyUp(key) {
 
 *; up::
   DoKeyUp(";")
+  return
+
+*'::
+  DoKeyDown("'")
+  return
+
+*' up::
+  DoKeyUp("'")
   return
 
 ; Bottom row
