@@ -76,7 +76,7 @@ return
 ; Number row handler.
 DoNumRowKeyDown(key) {
   if !TurnOffNumberRow {
-    Send, {Blind}{%key% Down}{%key% Up}
+    SendInput, {Blind}{%key% Down}{%key% Up}
   }
 }
 
@@ -188,10 +188,10 @@ DoKeyDown(key) {
       if keyobject["has_shifted_green_key"] {
         gkey := keyobject["shift_green_key"]
       }
-      Send, {Blind}{Shift Up}{%gkey% down}{%gkey% up}{Shift Down}
+      SendInput, {Blind}{Shift Up}{%gkey% down}{%gkey% up}{Shift Down}
     }
     else {
-      Send, {Blind}{%gkey% down}{%gkey% up}
+      SendInput, {Blind}{%gkey% down}{%gkey% up}
     }
   }
   else {
@@ -203,19 +203,19 @@ DoKeyDown(key) {
 	    len := media_key.Length() + 1
 	    Loop % media_key.Length() {
 	      tmpkey := media_key[A_Index]
-	      Send, {Blind}{%tmpkey% Down}
+	      SendInput, {Blind}{%tmpkey% Down}
 	    }
 	    Loop % media_key.Length() {
 	      tmpkey := media_key[len - A_Index]
-	      Send, {Blind}{%tmpkey% Up}
+	      SendInput, {Blind}{%tmpkey% Up}
 	    }
           }
 	  else {
-            Send, {Blind}{%media_key% down}{Blind}{%media_key% up}
+            SendInput, {Blind}{%media_key% down}{Blind}{%media_key% up}
 	  }
         }
 	else {
-          Send, {Blind}{%media_key% down}
+          SendInput, {Blind}{%media_key% down}
 	}
       }
       else {
@@ -231,19 +231,19 @@ DoKeyDown(key) {
   	    len := edit_key.Length() + 1
   	    Loop % edit_key.Length() {
   	      tmpkey := edit_key[A_Index]
-  	      Send, {Blind}{%tmpkey% Down}
+  	      SendInput, {Blind}{%tmpkey% Down}
   	    }
   	    Loop % edit_key.Length() {
   	      tmpkey := edit_key[len - A_Index]
-  	      Send, {Blind}{%tmpkey% Up}
+  	      SendInput, {Blind}{%tmpkey% Up}
   	    }
             }
   	  else {
-              Send, {Blind}{%edit_key% down}{Blind}{%edit_key% up}
+              SendInput, {Blind}{%edit_key% down}{Blind}{%edit_key% up}
   	  }
           }
   	else {
-            Send, {Blind}{%edit_key% down}
+            SendInput, {Blind}{%edit_key% down}
   	}
         }
         else {
@@ -251,7 +251,7 @@ DoKeyDown(key) {
         }
       }
       else {
-        Send, {Blind}{%send_key% down}{%send_key% up}
+        SendInput, {Blind}{%send_key% down}{%send_key% up}
       }
     }
   }
@@ -328,7 +328,7 @@ DoKeyUp(key) {
 *s up::
   DoKeyUp("s")
   if GetKeyState("Shift", "D") and !(GetKeyState("Shift", "P")) {
-    Send, {Blind}{Shift Up}
+    SendInput, {Blind}{Shift Up}
   }
   return
 
@@ -583,7 +583,7 @@ DoKeyUp(key) {
 *Space up::
   Global eat_space
   if !eat_space {
-    Send, {Blind}{Space Down}{Space Up}
+    SendInput, {Blind}{Space Down}{Space Up}
   }
   eat_space := 0
   return
@@ -607,11 +607,11 @@ DoKeyUp(key) {
   if isGreenLayer(0) {
     eat_tab := 1
     eat_space := 1
-    Send, {Blind}{Esc Down}{Blind}{Esc Up}
+    SendInput, {Blind}{Esc Down}{Blind}{Esc Up}
   }
 
   if !eat_tab {
-    Send, {Blind}{Tab Down}{Blind}{Tab Up}
+    SendInput, {Blind}{Tab Down}{Blind}{Tab Up}
   }
   eat_tab := 0
   return
