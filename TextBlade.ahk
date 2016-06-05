@@ -4,6 +4,9 @@
 Global KeyDownDelay = 30
 Global SpaceDownDelay = 30
 
+; Turn on/off removal of the numbers row in normal keyboard.
+Global TurnOffNumberRow = 0
+
 ; -----------------------
 ; START: Left Blade Keys
 ; -----------------------
@@ -20,7 +23,7 @@ addKey("a", "!")
 addKey("s", "@", "~", "Shift", 0)
 addKey("d", "#", "``")
 addKey("f", "$")
-addKey("g", "$")
+addKey("g", "%")
 
 ; Bottom row
 addKey("z", "+")
@@ -68,6 +71,13 @@ addKey("/", "\", "?", ["Control", "y"])
 ; -----------------------
   
 return
+
+; Number row handler.
+DoNumRowKeyDown(key) {
+  if !TurnOffNumberRow {
+    Send, {Blind}{%key% Down}{%key% Up}
+  }
+}
 
 ; Add key mappings function.
 addKey(key, green_key, shift_green_key := -1, edit_key := -1, edit_key_up := 1, replace_key := -1, media_key := -1) {
@@ -569,6 +579,14 @@ DoKeyUp(key) {
   eat_space := 0
   return
 
+; --------------------------
+; END  : Space Blade Hotkeys
+; --------------------------
+
+; --------------------------
+; START: Tab handling
+; --------------------------
+
 *Tab::
   Global eat_tab
   eat_tab := 0
@@ -590,5 +608,66 @@ DoKeyUp(key) {
   return
 
 ; --------------------------
-; END  : Space Blade Hotkeys
+; END  : Tab handling
 ; --------------------------
+
+; -----------------------
+; START: Number row
+; -----------------------
+
+*`::
+  DoNumRowKeyDown("``")
+  return
+*` up::return
+*1::
+  DoNumRowKeyDown("1")
+  return
+*1 up::return
+*2::
+  DoNumRowKeyDown("2")
+  return
+*2 up::return
+*3::
+  DoNumRowKeyDown("3")
+  return
+*3 up::return
+*4::
+  DoNumRowKeyDown("4")
+  return
+*4 up::return
+*5::
+  DoNumRowKeyDown("5")
+  return
+*5 up::return
+*6::
+  DoNumRowKeyDown("6")
+  return
+*6 up::return
+*7::
+  DoNumRowKeyDown("7")
+  return
+*7 up::return
+*8::
+  DoNumRowKeyDown("8")
+  return
+*8 up::return
+*9::
+  DoNumRowKeyDown("9")
+  return
+*9 up::return
+*0::
+  DoNumRowKeyDown("0")
+  return
+*0 up::return
+*-::
+  DoNumRowKeyDown("-")
+  return
+*- up::return
+*+::
+  DoNumRowKeyDown("+")
+  return
+*+ up::return
+    
+; -----------------------
+; END : Number row
+; -----------------------
