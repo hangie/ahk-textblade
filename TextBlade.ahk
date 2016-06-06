@@ -42,9 +42,9 @@ addKey("b", "}")
 
 ; Top row
 addKey("y", "6",, ["Control", "x"])
-addKey("u", "7",, "Home",,, "Media_Prev")
+addKey("u", "7",, ["Control", "Left"],,, "Media_Prev")
 addKey("i", "8",, "Up",,, "Volume_Up")
-addKey("o", "9",, "End",,, "Media_Next")
+addKey("o", "9",, ["Control", "Right"],,, "Media_Next")
 addKey("p", "0")
 
 ; Specials
@@ -56,15 +56,15 @@ addKey("\", "Delete",,"Backspace",,"Backspace")
 addKey("h", "^",, ["Control", "c"])
 addKey("j", "&",, "Left")
 addKey("k", "*",, "Down",,, "Volume_Down")
-addKey("l", "(",, "Right")
+addKey("l", "(",, "Right",,,"Media_Play_Pause")
 addKey(";", ")", """", ["Control", "z"],, "'")
 addKey("'", "Enter",,,, "Enter")
 
 ; Bottom row
 addKey("n", "[",, ["Control", "v"])
-addKey("m", "]",, ["Control", "Home"])
-addKey(",", ";", "<",,,, "Media_Play_Pause")
-addKey(".", ":", ">", ["Control", "End"])
+addKey("m", "]",, "Home",,, "Media_Prev")
+addKey(",", ";", "<",,,, "Volume_Mute")
+addKey(".", ":", ">", "End",,, "Media_Next")
 addKey("/", "\", "?", ["Control", "y"])
 
 ; -----------------------
