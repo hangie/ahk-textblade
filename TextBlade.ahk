@@ -48,9 +48,9 @@ addKey("o", "9",, "End",,, "Media_Next")
 addKey("p", "0")
 
 ; Specials
-addKey("[", "Delete",,,,"Backspace")
-addKey("]", "Delete",,,,"Backspace")
-addKey("\", "Delete",,,,"Backspace")
+addKey("[", "Delete",,"Backspace",,"Backspace")
+addKey("]", "Delete",,"Backspace",,"Backspace")
+addKey("\", "Delete",,"Backspace",,"Backspace")
 
 ; Middle row
 addKey("h", "^",, ["Control", "c"])
@@ -595,6 +595,9 @@ DoKeyUp(key) {
 ; --------------------------
 ; START: Tab handling
 ; --------------------------
+
+!Tab::SendInput, {Blind}{Tab Down}{Tab Up}
+!Tab Up::return
 
 *Tab::
   Global eat_tab
