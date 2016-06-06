@@ -5,4 +5,4 @@ TextBlade by [WayTools](https://waytools.com/ "WayTools Homepage") mappings for 
 
 ## Alpha
 
-![alt text](../blob/master/images/TextBlade-Alpha.jpg "Image of ALPHA layer")
+![alt text](../master/images/TextBlade-Alpha.jpg "Image of ALPHA layer")
