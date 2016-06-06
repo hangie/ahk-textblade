@@ -1,11 +1,19 @@
 #InstallKeybdHook
 #SingleInstance force
 
-Global KeyDownDelay = 30
-Global SpaceDownDelay = 30
+; Toying with preventing delays to make sure correct keys output.
+SetBatchLines, -1
+
+Global KeyDownDelay
+Global SpaceDownDelay
 
 ; Turn on/off removal of the numbers row in normal keyboard.
-Global TurnOffNumberRow = 0
+Global TurnOffNumberRow
+
+; Read ini file.
+IniRead, KeyDownDelay, TextBlade.ini, Config, KeyDownDelay, 30
+IniRead, SpaceDownDelay, TextBlade.ini, Config, SpaceDownDelay, 30
+IniRead, TurnOffNumberRow, TextBlade.ini, Config, TurnOffNumberRow, 0
 
 ; -----------------------
 ; START: Left Blade Keys
@@ -164,6 +172,26 @@ isMediaLayer() {
 
 isEditLayer() {
   if GetKeyState("d", "P") and GetKeyState("f", "P")
+  {
+    return 1
+  }
+  else {
+    return 0
+  }
+}
+
+isFunctionLowLayer() {
+  if GetKeyState("i", "P") and GetKeyState("o", "P")
+  {
+    return 1
+  }
+  else {
+    return 0
+  }
+}
+
+isFunctionHighLayer() {
+  if GetKeyState("l", "P") and GetKeyState(";", "P")
   {
     return 1
   }
