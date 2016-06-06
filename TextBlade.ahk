@@ -57,15 +57,15 @@ addKey("h", "^",, ["Control", "c"])
 addKey("j", "&",, "Left")
 addKey("k", "*",, "Down",,, "Volume_Down")
 addKey("l", "(",, "Right",,,"Media_Play_Pause")
-addKey(";", ")", """", ["Control", "z"],, "'")
+addKey(";", ")",, ["Control", "z"],, "'")
 addKey("'", "Enter",,,, "Enter")
 
 ; Bottom row
 addKey("n", "[",, ["Control", "v"])
 addKey("m", "]",, "Home",,, "Media_Prev")
-addKey(",", ";", "<",,,, "Volume_Mute")
-addKey(".", ":", ">", "End",,, "Media_Next")
-addKey("/", "\", "?", ["Control", "y"])
+addKey(",", ";",,,,, "Volume_Mute")
+addKey(".", ":",, "End",,, "Media_Next")
+addKey("/", "\",, ["Control", "y"])
 
 ; -----------------------
 ; END  : Right Blade Keys
