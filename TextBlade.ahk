@@ -11,9 +11,18 @@ Global SpaceDownDelay
 Global TurnOffNumberRow
 
 ; Read ini file.
-IniRead, KeyDownDelay, TextBlade.ini, Config, KeyDownDelay, 30
-IniRead, SpaceDownDelay, TextBlade.ini, Config, SpaceDownDelay, 30
+IniRead, KeyDownDelay, TextBlade.ini, Config, KeyDownDelay, 40
+IniRead, SpaceDownDelay, TextBlade.ini, Config, SpaceDownDelay, 40
 IniRead, TurnOffNumberRow, TextBlade.ini, Config, TurnOffNumberRow, 0
+
+IniRead, Sections, TextBlade.ini
+Loop, parse, Sections, `n
+{
+  if InStr(A_LoopField, "key_map_", true) > 0
+  {
+    ; MsgBox, Index %A_Index% is %A_LoopField%
+  }
+}
 
 ; -----------------------
 ; START: Left Blade Keys
@@ -80,6 +89,7 @@ addKey("/", "\",, ["Control", "y"])
 ; -----------------------
   
 return
+#MaxThreadsBuffer On
 
 ; Number row handler.
 DoNumRowKeyDown(key) {
@@ -143,19 +153,32 @@ isKeyDown(key) {
 }
 
 isGreenLayer(delay := 1) {
+  global eat_space
   if GetKeyState("Space", "P") {
     if delay {
       ; Extra delay to make sure it is real.
-      sleep, SpaceDownDelay ;
+      MySleep(SpaceDownDelay)
     }
     if GetKeyState("Space", "P") {
       return 1
     }
     else {
+      if isKeyDown("Space")
+      {
+        eat_space := 1
+        SendInput, {Blind}{Space Down}{Space Up}
+        setKeyDown("Space", 0)
+      }
       return 0
     }
   }
   else {
+    if isKeyDown("Space")
+    {
+      SendInput, {Blind}{Space Down}{Space Up}
+      eat_space := 1
+      setKeyDown("Space", 0)
+    }
     return 0
   }
 }
@@ -200,14 +223,26 @@ isFunctionHighLayer() {
   }
 }
 
+MySleep(period)
+{
+  DllCall("Sleep", Uint, period)
+}
+
 DoKeyDown(key) {
+  Critical, 200
   global eat_space
 
   keyobject := getKey(key)
   send_key := keyobject["key"]
 
   if !isKeyDown(key) {
-    sleep, %KeyDownDelay% ; Delay before sending key.
+;     loop, 4
+;     {
+;       DllCall("Sleep", Uint, 10) ;sleep, 10
+;       if !GetKeyState(key, "P")
+;         break
+;     }
+    MySleep(KeyDownDelay) ; Delay before sending key.
   }
   if isGreenLayer() {
     eat_space := 1
@@ -289,6 +324,7 @@ DoKeyDown(key) {
 }
 
 DoKeyUp(key) {
+  Critical, 40
   setKeyDown(key, 0)
 }
 
@@ -604,12 +640,18 @@ DoKeyUp(key) {
 ; --------------------------
 
 *Space::
+  Critical, 100
   Global eat_space
+  if !isKeyDown("Space")
+  {
+    setKeyDown("Space", 1)
+  }
   eat_space := 0
   return
 
 *Space up::
   Global eat_space
+  setKeyDown("Space", 0)
   if !eat_space {
     SendInput, {Blind}{Space Down}{Space Up}
   }
@@ -619,6 +661,8 @@ DoKeyUp(key) {
 ; --------------------------
 ; END  : Space Blade Hotkeys
 ; --------------------------
+
+
 
 ; --------------------------
 ; START: Tab handling
@@ -633,6 +677,7 @@ DoKeyUp(key) {
   return
 
 *Tab up::
+  Critical, 50
   Global eat_tab
 
   if isGreenLayer(0) {
