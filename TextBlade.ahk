@@ -1,11 +1,28 @@
 #InstallKeybdHook
 #SingleInstance force
 
-Global KeyDownDelay = 30
-Global SpaceDownDelay = 30
+; Toying with preventing delays to make sure correct keys output.
+SetBatchLines, -1
+
+Global KeyDownDelay
+Global SpaceDownDelay
 
 ; Turn on/off removal of the numbers row in normal keyboard.
-Global TurnOffNumberRow = 0
+Global TurnOffNumberRow
+
+; Read ini file.
+IniRead, KeyDownDelay, TextBlade.ini, Config, KeyDownDelay, 40
+IniRead, SpaceDownDelay, TextBlade.ini, Config, SpaceDownDelay, 40
+IniRead, TurnOffNumberRow, TextBlade.ini, Config, TurnOffNumberRow, 0
+
+IniRead, Sections, TextBlade.ini
+Loop, parse, Sections, `n
+{
+  if InStr(A_LoopField, "key_map_", true) > 0
+  {
+    ; MsgBox, Index %A_Index% is %A_LoopField%
+  }
+}
 
 ; -----------------------
 ; START: Left Blade Keys
@@ -57,21 +74,22 @@ addKey("h", "^",, ["Control", "c"])
 addKey("j", "&",, "Left")
 addKey("k", "*",, "Down",,, "Volume_Down")
 addKey("l", "(",, "Right",,,"Media_Play_Pause")
-addKey(";", ")", """", ["Control", "z"],, "'")
+addKey(";", ")",, ["Control", "z"],, "'")
 addKey("'", "Enter",,,, "Enter")
 
 ; Bottom row
 addKey("n", "[",, ["Control", "v"])
 addKey("m", "]",, "Home",,, "Media_Prev")
-addKey(",", ";", "<",,,, "Volume_Mute")
-addKey(".", ":", ">", "End",,, "Media_Next")
-addKey("/", "\", "?", ["Control", "y"])
+addKey(",", ";",,,,, "Volume_Mute")
+addKey(".", ":",, "End",,, "Media_Next")
+addKey("/", "\",, ["Control", "y"])
 
 ; -----------------------
 ; END  : Right Blade Keys
 ; -----------------------
   
 return
+#MaxThreadsBuffer On
 
 ; Number row handler.
 DoNumRowKeyDown(key) {
@@ -135,19 +153,32 @@ isKeyDown(key) {
 }
 
 isGreenLayer(delay := 1) {
+  global eat_space
   if GetKeyState("Space", "P") {
     if delay {
       ; Extra delay to make sure it is real.
-      sleep, SpaceDownDelay ;
+      MySleep(SpaceDownDelay)
     }
     if GetKeyState("Space", "P") {
       return 1
     }
     else {
+      if isKeyDown("Space")
+      {
+        eat_space := 1
+        SendInput, {Blind}{Space Down}{Space Up}
+        setKeyDown("Space", 0)
+      }
       return 0
     }
   }
   else {
+    if isKeyDown("Space")
+    {
+      SendInput, {Blind}{Space Down}{Space Up}
+      eat_space := 1
+      setKeyDown("Space", 0)
+    }
     return 0
   }
 }
@@ -172,14 +203,46 @@ isEditLayer() {
   }
 }
 
+isFunctionLowLayer() {
+  if GetKeyState("i", "P") and GetKeyState("o", "P")
+  {
+    return 1
+  }
+  else {
+    return 0
+  }
+}
+
+isFunctionHighLayer() {
+  if GetKeyState("l", "P") and GetKeyState(";", "P")
+  {
+    return 1
+  }
+  else {
+    return 0
+  }
+}
+
+MySleep(period)
+{
+  DllCall("Sleep", Uint, period)
+}
+
 DoKeyDown(key) {
+  Critical, 200
   global eat_space
 
   keyobject := getKey(key)
   send_key := keyobject["key"]
 
   if !isKeyDown(key) {
-    sleep, %KeyDownDelay% ; Delay before sending key.
+;     loop, 4
+;     {
+;       DllCall("Sleep", Uint, 10) ;sleep, 10
+;       if !GetKeyState(key, "P")
+;         break
+;     }
+    MySleep(KeyDownDelay) ; Delay before sending key.
   }
   if isGreenLayer() {
     eat_space := 1
@@ -261,6 +324,7 @@ DoKeyDown(key) {
 }
 
 DoKeyUp(key) {
+  Critical, 40
   setKeyDown(key, 0)
 }
 
@@ -576,12 +640,18 @@ DoKeyUp(key) {
 ; --------------------------
 
 *Space::
+  Critical, 100
   Global eat_space
+  if !isKeyDown("Space")
+  {
+    setKeyDown("Space", 1)
+  }
   eat_space := 0
   return
 
 *Space up::
   Global eat_space
+  setKeyDown("Space", 0)
   if !eat_space {
     SendInput, {Blind}{Space Down}{Space Up}
   }
@@ -591,6 +661,8 @@ DoKeyUp(key) {
 ; --------------------------
 ; END  : Space Blade Hotkeys
 ; --------------------------
+
+
 
 ; --------------------------
 ; START: Tab handling
@@ -605,6 +677,7 @@ DoKeyUp(key) {
   return
 
 *Tab up::
+  Critical, 50
   Global eat_tab
 
   if isGreenLayer(0) {
