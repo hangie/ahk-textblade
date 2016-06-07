@@ -235,6 +235,8 @@ DoKeyDown(key) {
   keyobject := getKey(key)
   send_key := keyobject["key"]
 
+  is_green_layer := isGreenLayer()
+
   if !isKeyDown(key) {
 ;     loop, 4
 ;     {
@@ -244,7 +246,7 @@ DoKeyDown(key) {
 ;     }
     MySleep(KeyDownDelay) ; Delay before sending key.
   }
-  if isGreenLayer() {
+  if is_green_layer {
     eat_space := 1
     gkey := keyobject["green_key"]
     if GetKeyState("Shift", "P") {
