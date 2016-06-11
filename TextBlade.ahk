@@ -302,12 +302,12 @@ DoKeyDown(key) {
   	      tmpkey := edit_key[len - A_Index]
   	      SendInput, {Blind}{%tmpkey% Up}
   	    }
-            }
+      }
   	  else {
               SendInput, {Blind}{%edit_key% down}{Blind}{%edit_key% up}
   	  }
-          }
-  	else {
+    }
+ 	  else {
             SendInput, {Blind}{%edit_key% down}
   	}
         }
@@ -393,7 +393,7 @@ DoKeyUp(key) {
 
 *s up::
   DoKeyUp("s")
-  if GetKeyState("Shift", "D") and !(GetKeyState("Shift", "P")) {
+  if GetKeyState("Shift") and !(GetKeyState("Shift", "P")) {
     SendInput, {Blind}{Shift Up}
   }
   return
@@ -624,12 +624,18 @@ DoKeyUp(key) {
 *. up::
   DoKeyUp(".")
   return
-  
-*/::
+
+*^/::
+*!/::
+*+/::
+/::
   DoKeyDown("/")
   return
   
-*/ up::
+*^/ up::
+*!/ up::
+*+/ up::
+/ up::
   DoKeyUp("/")
   return
 
