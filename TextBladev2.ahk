@@ -1,8 +1,13 @@
 #InstallKeybdHook
 #SingleInstance force
 
-Global TB_KeyDelay := 300
+Global TB_KeyDelay := 100
+Global TB_GreenKeyDelay := 100
 Global TB_Layers := {}
+Global TB_LayerKeys := {}
+Global TB_Layer := {}
+
+TB_Layer.push("Alpha")
 
 SetStoreCapslockMode, off
 
@@ -10,6 +15,8 @@ SetStoreCapslockMode, off
 SetBatchLines, -1
 
 Global xls
+
+; Open Excel
 if not(xls)
 {
   xls := ComObjCreate("Excel.Application")
@@ -19,23 +26,102 @@ if not(xls)
 }
 
 
+; Load hotkeys.
 For Key in xls.Worksheets("Keys").Range("Hotkeys[Hotkey]")
 {
   value := Key.Value2
 
-  ; Add the key and it's values.
-  addKey(value, Key)
+  ; Loop over header.
+  key_entry := {key: value}
+  For Col in xls.Worksheets("Keys").Range("HotKeys[#Headers]")
+  {
+    heading := Col.Value2
+    col_value := Col.Offset(Key.Row - 1 , 0).Value2
+    key_entry[heading] := col_value
+  }
+  ; MsgBox % key_entry["Hotkey"]
+  addKeyEntry(value, key_entry)
 
   ; Just the key
   Hotkey, %value%, DoHotKeyDown
   Hotkey, %value% Up, DoHotKeyUp
 }
 
+; Load layers
+For Layer in xls.Worksheets("Layers").Range("Layers[Layer]")
+{
+  layer_name := Layer.Value2
+  layer_keys_str := Layer.Offset(0, 1).Value2
+
+  ; Split keys.
+  layer_keys := {}
+  Loop, Parse, layer_keys_str, `n
+  {
+    layer_keys[A_LoopField] := 1
+    key_layers := TB_LayerKeys[A_LoopField]
+    if (!isObject(key_layers))
+    {
+      key_layers := {}
+    }
+    key_layers[layer_name] := 1
+    TB_LayerKeys[A_LoopField] := key_layers
+  }
+  TB_Layers[layer_name] := layer_keys
+}
+
+; Close Excel.
 wb.Close(false)
 xls.Quit
 
+isLayerComplete("f")
+
 return
+
+
 #MaxThreadsBuffer On
+
+isLayerKey(key)
+{
+  Global TB_LayerKeys
+  lkey := TB_LayerKeys[key]
+  MsgBox % key " => " isObject(lkey)
+  return isObject(lkey)
+}
+
+isLayerComplete(key)
+{
+  Global TB_LayerKeys
+  Global TB_Layers
+  Global TB_Layer
+  if (isLayerKey(key))
+  {
+    layers := TB_LayerKeys[key]
+    For layer_name in layers
+    {
+      MsgBox % key " => " layer_name
+      layer := TB_Layers[layer_name]
+      complete := 1
+      For lkey in layer
+      {
+        if (!GetKeyState(lkey, "P"))
+        {
+          complete := 0
+          break
+        }
+      }
+      if (complete)
+      {
+        TB_Layer := layer_name
+        MsgBox % key " => complete[" complete "]"
+        TB_Layer.push(layer_name)
+      }
+    }
+  }
+  else
+  {
+    return 0
+  }
+}
 
 MySleep(period)
 {
@@ -60,6 +146,17 @@ isKeyDown(key) {
   }
 }
 
+; Get keydown
+getKeyDown(key) {
+  global keydownSet
+  if !isobject(keydownSet)
+  {
+    keydownSet := {}
+  }
+  keydown := keydownSet[key]
+  return keydown
+}
+
 ; Add key mappings function.
 setKeyDown(key, value) {
   global keydownSet
@@ -71,9 +168,18 @@ setKeyDown(key, value) {
 
   if (value != 0)
   {
-    newEntry := {isDown: value}
+    newEntry := {layer: value}
     keydownSet[key] := newEntry
   }
+}
+
+deleteKeyDown(key) {
+  global keydownSet
+  if !isobject(keydownSet)
+  {
+    keydownSet := {}
+  }
+  keydownSet.Delete(key)
 }
 
 isGreenLayer(delay := 1) {
@@ -81,7 +187,7 @@ isGreenLayer(delay := 1) {
   if GetKeyState("Space", "P") {
     if delay {
       ; Extra delay to make sure it is real.
-      MySleep(SpaceDownDelay)
+      MySleep(TB_GreenKeyDelay)
     }
     if GetKeyState("Space", "P") {
       return 1
@@ -91,7 +197,7 @@ isGreenLayer(delay := 1) {
       {
         eat_space := 1
         SendInput, {Space}
-        setKeyDown("Space", 0)
+        setKeyDown("Space", "Green")
       }
       return 0
     }
@@ -101,11 +207,23 @@ isGreenLayer(delay := 1) {
     {
       SendInput, {Space}
       eat_space := 1
-      setKeyDown("Space", 0)
+      setKeyDown("Space", "Green")
     }
     return 0
   }
 }
+
+addKeyEntry(key, newEntry) {
+  global keySet
+  the_key := key
+  if !isobject(keySet)
+  {
+    keySet := {}
+  }
+
+  keySet[key] := newEntry
+}
+
 
 ; Add key mappings function.
 addKey(key, row) {
@@ -167,13 +285,44 @@ getLayerKeys(key)
 
 getDownKey(key) {
   keys := getKey(key)
-  the_key := keys["down_key"]
+
+  ; Retrieve the layer for the key.
+  key_down := getKeyDown(key)
+  layer := "Alpha"
+  if (isObject(key_down))
+  {
+    layer := key_down["layer"]
+    if (StrLen(layer) <= 0)
+    {
+      layer := "Alpha"
+    }
+  }
+
+  key_down := layer " Down"
+  
+  the_key := keys[key_down]
+  ; MsgBox % key_down " => " the_key
   return the_key
 }
 
 getUpKey(key) {
   keys := getKey(key)
-  the_key := keys["up_key"]
+
+  ; Retrieve the layer for the key.
+  key_down := getKeyDown(key)
+  layer := "Alpha"
+  if (isObject(key_down))
+  {
+    layer := key_down["layer"]
+    if (StrLen(layer) <= 0)
+    {
+      layer := "Alpha"
+    }
+  }
+
+  key_up := layer " Up"
+  
+  the_key := keys[key_up]
   return the_key
 }
 
@@ -189,19 +338,30 @@ getGreenUpKey(key) {
   return the_key
 }
 
+getCurrentLayer()
+{
+  layer := "Alpha"
+  if (isGreenLayer())
+  {
+    layer := "Green"
+  }
+  return layer
+}
+
 DoHotKeyDown:
   Critical, 1000
   key := ""
   if (!isKeyDown(A_ThisHotKey))
   {
-    setKeyDown(A_ThisHotKey, 1)
     MySleep(TB_KeyDelay)
+    isLayerComplete(A_ThisHotKey)
+    setKeyDown(A_ThisHotKey, getCurrentLayer())
   }
-  if (isGreenLayer())
+  if (isGreenLayer(0))
   {
-    key := getGreenDownKey(A_ThisHotKey)
+    key := getDownKey(A_ThisHotKey)
     layer := "Green"
-    setKeyDown("Space", 0)
+    setKeyDown("Space", "Green")
   }
   else
   {
@@ -239,12 +399,10 @@ DoHotKeyUp:
   Critical, 1000
   StringLeft, this_key, A_ThisHotKey, StrLen(A_ThisHotKey) - 3
 
-  if (isKeyDown(this_key))
-  {
-    key := getUpKey(this_key)
-    SendInput, %key%
-    setKeyDown(this_key, 0)
-  }
+  key := getUpKey(this_key)
+  SendInput, %key%
+  deleteKeyDown(this_key)
+
   return
 
 OnExit:
