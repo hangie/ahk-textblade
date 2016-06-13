@@ -1,13 +1,15 @@
 #InstallKeybdHook
 #SingleInstance force
 
-Global TB_KeyDelay := 100
-Global TB_GreenKeyDelay := 100
+Global TB_KeyDelay := 40
+Global TB_GreenKeyDelay := 20
 Global TB_Layers := {}
 Global TB_LayerKeys := {}
 Global TB_Layer := {}
+Global TB_ActiveLayers := {}
+Global TB_LayerDelay := {}
 
-TB_Layer.push("Alpha")
+TB_Layer := "Alpha"
 
 SetStoreCapslockMode, off
 
@@ -39,6 +41,7 @@ For Key in xls.Worksheets("Keys").Range("Hotkeys[Hotkey]")
     col_value := Col.Offset(Key.Row - 1 , 0).Value2
     key_entry[heading] := col_value
   }
+  Col := ""
   ; MsgBox % key_entry["Hotkey"]
   addKeyEntry(value, key_entry)
 
@@ -46,34 +49,49 @@ For Key in xls.Worksheets("Keys").Range("Hotkeys[Hotkey]")
   Hotkey, %value%, DoHotKeyDown
   Hotkey, %value% Up, DoHotKeyUp
 }
+Key := ""
 
 ; Load layers
 For Layer in xls.Worksheets("Layers").Range("Layers[Layer]")
 {
   layer_name := Layer.Value2
   layer_keys_str := Layer.Offset(0, 1).Value2
+  layer_delay := Layer.Offset(0, 2).Value2
 
   ; Split keys.
   layer_keys := {}
   Loop, Parse, layer_keys_str, `n
   {
     layer_keys[A_LoopField] := 1
+
+    ; Retrieve the current layers for this key.
     key_layers := TB_LayerKeys[A_LoopField]
     if (!isObject(key_layers))
     {
+      ; No layers yet.  Initialize.
       key_layers := {}
     }
+    ; Add this layer as a layer for this key.
     key_layers[layer_name] := 1
     TB_LayerKeys[A_LoopField] := key_layers
   }
+  ; Set the keys for this layer.
   TB_Layers[layer_name] := layer_keys
+  TB_LayerDelay[layer_name] := layer_delay
 }
+Layer := ""
 
 ; Close Excel.
 wb.Close(false)
 xls.Quit
+wb := ""
+xls := ""
 
-isLayerComplete("f")
+; MsgBox "Test if layer complete"
+if (isLayerComplete("f"))
+{
+  MsgBox % "f key has complete layer"
+}
 
 return
 
@@ -84,7 +102,7 @@ isLayerKey(key)
 {
   Global TB_LayerKeys
   lkey := TB_LayerKeys[key]
-  MsgBox % key " => " isObject(lkey)
+  ; MsgBox % key " => " isObject(lkey)
   return isObject(lkey)
 }
 
@@ -93,28 +111,75 @@ isLayerComplete(key)
   Global TB_LayerKeys
   Global TB_Layers
   Global TB_Layer
+  Global TB_ActiveLayers
   if (isLayerKey(key))
   {
+    ; Delay one key length.
+    MySleep(TB_KeyDelay)
+    clayers := ""
+
+    ; Get the layers for the key.
     layers := TB_LayerKeys[key]
+    tmp_layer := ""
+    tmp_layer_size := 0
+
     For layer_name in layers
     {
-      MsgBox % key " => " layer_name
+      layer_delay := TB_LayerDelay[layer_name]
+      if (layer_delay > 0)
+      {
+        MySleep(layer_delay)
+      }
+
       layer := TB_Layers[layer_name]
       complete := 1
+      lsize := 0
+      ; MsgBox % layer_name " has layer " layer
       For lkey in layer
       {
+        lsize := lsize + 1
+        ; MsgBox % layer_name " has key " lkey
         if (!GetKeyState(lkey, "P"))
         {
+          ; MsgBox % layer_name " is not complete as " lkey " is not down"
           complete := 0
-          break
+        }
+        else if (isKeyDown(lkey))
+        {
+          ; Key already processed.  Ignore
+          ; MsgBox % layer_name " is not complete as " lkey " is already processed"
+          complete := 0
         }
       }
       if (complete)
       {
-        TB_Layer := layer_name
-        MsgBox % key " => complete[" complete "]"
-        TB_Layer.push(layer_name)
+        ; Add layer to active layers.
+        TB_ActiveLayers[layer_name] := lsize
+        clayers := clayers . " " layer_name
+
+        ; MsgBox % layer_name " is complete"
+        ; Layer with most keys is primary active layer.
+        if (lsize > tmp_layer_size)
+        {
+          tmp_layer_size := lsize
+          tmp_layer := layer_name
+        }
       }
+    }
+    if (tmp_layer_size > 0)
+    {
+      ; Set active layer.
+      TB_Layer := tmp_layer
+      ; MsgBox % key " => complete[" tmp_layer "]" clayers
+
+      ; Mark the keys of the layer as down.
+      layer := TB_Layers[tmp_layer]
+      For lkey in layer
+      {
+        setKeyDown(lkey, TB_Layer)
+      }
+
+      return 1
     }
   }
   else
@@ -142,6 +207,7 @@ isKeyDown(key) {
   }
   else
   {
+    ; MsgBox % key " is " keydown
     return 0
   }
 }
@@ -169,6 +235,7 @@ setKeyDown(key, value) {
   if (value != 0)
   {
     newEntry := {layer: value}
+    ; MsgBox % key "[" value "] Down"
     keydownSet[key] := newEntry
   }
 }
@@ -180,37 +247,6 @@ deleteKeyDown(key) {
     keydownSet := {}
   }
   keydownSet.Delete(key)
-}
-
-isGreenLayer(delay := 1) {
-  global eat_space
-  if GetKeyState("Space", "P") {
-    if delay {
-      ; Extra delay to make sure it is real.
-      MySleep(TB_GreenKeyDelay)
-    }
-    if GetKeyState("Space", "P") {
-      return 1
-    }
-    else {
-      if isKeyDown("Space")
-      {
-        eat_space := 1
-        SendInput, {Space}
-        setKeyDown("Space", "Green")
-      }
-      return 0
-    }
-  }
-  else {
-    if isKeyDown("Space")
-    {
-      SendInput, {Space}
-      eat_space := 1
-      setKeyDown("Space", "Green")
-    }
-    return 0
-  }
 }
 
 addKeyEntry(key, newEntry) {
@@ -326,83 +362,64 @@ getUpKey(key) {
   return the_key
 }
 
-getGreenDownKey(key) {
-  keys := getKey(key)
-  the_key := keys["green_down_key"]
-  return the_key
-}
-
-getGreenUpKey(key) {
-  keys := getKey(key)
-  the_key := keys["green_up_key"]
-  return the_key
-}
-
-getCurrentLayer()
-{
-  layer := "Alpha"
-  if (isGreenLayer())
-  {
-    layer := "Green"
-  }
-  return layer
-}
-
 DoHotKeyDown:
   Critical, 1000
   key := ""
-  if (!isKeyDown(A_ThisHotKey))
+  hkey := A_ThisHotKey
+  if (!isKeyDown(hkey))
   {
     MySleep(TB_KeyDelay)
-    isLayerComplete(A_ThisHotKey)
-    setKeyDown(A_ThisHotKey, getCurrentLayer())
-  }
-  if (isGreenLayer(0))
-  {
-    key := getDownKey(A_ThisHotKey)
-    layer := "Green"
-    setKeyDown("Space", "Green")
+    if (!isLayerComplete(hkey))
+    {
+      setKeyDown(hkey, TB_Layer)
+    }
   }
   else
   {
-    layer := getLayer(A_ThisHotKey)
-    if (isObject(layer))
-    {
-      layer_name := layer["layer"]
-      in_layer := 1
-      for lkey in layer["keys"]
-      {
-        if (!GetKeyState(lkey, "P"))
-        {
-          in_layer := 0
-          break
-        }
-      }
-      if (in_layer)
-      {
-        TB_Layers[layer_name] := 1
-      }
-      else
-      {
-        key := getDownKey(A_ThisHotKey)
-      }
-    }
-    else
-    {
-      key := getDownKey(A_ThisHotKey)
-    }
+    ; MsgBox % "THERE"
   }
+  key := getDownKey(hkey)
+
   SendInput, %key%
   return
 
 DoHotKeyUp:
   Critical, 1000
+  Global TB_LayerKeys
+  Global TB_ActiveLayers
   StringLeft, this_key, A_ThisHotKey, StrLen(A_ThisHotKey) - 3
 
   key := getUpKey(this_key)
+
   SendInput, %key%
+  ; MsgBox % "Deleting key " this_key
   deleteKeyDown(this_key)
 
+  ; Remove active layers for key.
+  if (isLayerKey(this_key))
+  {
+    ; Delete active layers for this key.
+    layers := TB_LayerKeys[this_key]
+    For layer_name in layers
+    {
+      TB_ActiveLayers.Delete(layer_name)
+    }
+
+    ; Find which layer is now active.
+    active_layer := "Alpha"
+    lkey_size := 0
+    For layer in TB_ActiveLayers
+    {
+      if (TB_ActiveLayers[layer] > lkey_size)
+      {
+        lkey_size := TB_ActiveLayers[layer]
+        active_layer := layer
+      }
+    }
+
+    ; Set the active layer.
+    TB_Layer := active_layer
+  }
   return
 
 OnExit:
