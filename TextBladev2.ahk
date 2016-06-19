@@ -2,7 +2,6 @@
 #SingleInstance force
 
 Global TB_KeyDelay := 40
-Global TB_GreenKeyDelay := 20
 Global TB_Layers := {}
 Global TB_LayerKeys := {}
 Global TB_Layer := {}
@@ -42,6 +41,7 @@ For Key in xls.Worksheets("Keys").Range("Hotkeys[Hotkey]")
     key_entry[heading] := col_value
   }
   Col := ""
+
   ; MsgBox % key_entry["Hotkey"]
   addKeyEntry(value, key_entry)
 
@@ -115,7 +115,7 @@ isLayerComplete(key)
   if (isLayerKey(key))
   {
     ; Delay one key length.
-    MySleep(TB_KeyDelay)
+    ; MySleep(TB_KeyDelay)
     clayers := ""
 
     ; Get the layers for the key.
@@ -364,11 +364,19 @@ getUpKey(key) {
 
 DoHotKeyDown:
   Critical, 1000
+  Global TB_KeyDelay
   key := ""
   hkey := A_ThisHotKey
   if (!isKeyDown(hkey))
   {
-    MySleep(TB_KeyDelay)
+    k := getKey(hkey)
+    kdelay := k["Delay"]
+    if (!kdelay)
+    {
+      kdelay := TB_KeyDelay
+    }
+    ; KeyWait, %hkey%, T%kdelay%
+    MySleep(kdelay)
     if (!isLayerComplete(hkey))
     {
       setKeyDown(hkey, TB_Layer)
