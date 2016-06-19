@@ -7,6 +7,12 @@ Global TB_LayerKeys := {}
 Global TB_Layer := {}
 Global TB_ActiveLayers := {}
 Global TB_LayerDelay := {}
+Global TB_Layout
+
+IniRead, TB_Layout, TextBladev2.ini, Config, Layout, "QWERTY"
+
+Global TB_LayoutSheet := "Keys." . TB_Layout
+Global TB_LayoutTable := "HotKeys." . TB_Layout
 
 TB_Layer := "Alpha"
 
@@ -28,13 +34,13 @@ if not(xls)
 
 
 ; Load hotkeys.
-For Key in xls.Worksheets("Keys").Range("Hotkeys[Hotkey]")
+For Key in xls.Worksheets(TB_LayoutSheet).Range(TB_LayoutTable . "[Hotkey]")
 {
   value := Key.Value2
 
   ; Loop over header.
   key_entry := {key: value}
-  For Col in xls.Worksheets("Keys").Range("HotKeys[#Headers]")
+  For Col in xls.Worksheets(TB_LayoutSheet).Range(TB_LayoutTable . "[#Headers]")
   {
     heading := Col.Value2
     col_value := Col.Offset(Key.Row - 1 , 0).Value2
