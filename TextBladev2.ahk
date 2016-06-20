@@ -34,6 +34,7 @@ if not(xls)
 
 
 ; Load hotkeys.
+Critical 10000
 For Key in xls.Worksheets(TB_LayoutSheet).Range(TB_LayoutTable . "[Hotkey]")
 {
   value := Key.Value2
