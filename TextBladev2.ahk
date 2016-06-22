@@ -7,6 +7,7 @@ Global TB_LayerKeys := {}
 Global TB_Layer := {}
 Global TB_ActiveLayers := {}
 Global TB_LayerDelay := {}
+Global TB_LayerAliases := {}
 Global TB_Layout
 
 IniRead, TB_Layout, TextBladev2.ini, Config, Layout, "QWERTY"
@@ -88,6 +89,16 @@ For Layer in xls.Worksheets("Layers").Range("Layers[Layer]")
 }
 Layer := ""
 
+For LayerAlias in xls.Worksheets("Layer Aliases").Range("LayerAliases[LayerAlias]")
+{
+  Global TB_LayerAliases
+  
+  layer_alias := LayerAlias.Value2
+  layer_name := LayerAlias.Offset(0, 1).Value2
+  TB_LayerAliases[layer_alias] := layer_name
+}
+LayerAlias := ""
+
 ; Close Excel.
 wb.Close(false)
 xls.Quit
@@ -100,6 +111,8 @@ if (isLayerComplete("f"))
   MsgBox % "f key has complete layer"
 }
 
+GetModKeyState("+Space")
+
 return
 
 
@@ -111,6 +124,50 @@ isLayerKey(key)
   lkey := TB_LayerKeys[key]
   ; MsgBox % key " => " isObject(lkey)
   return isObject(lkey)
+}
+
+GetModKeyState(keys, mode := "P")
+{
+  hasModKeys := RegExMatch(keys, "^([\^\+#!]+)", ModKeys)
+  if (hasModKeys)
+  {
+    StringRight, RestKeys, keys, StrLen(keys) - StrLen(ModKeys)
+
+    if (InStr("+", ModKeys))
+    {
+      if (!GetKeyState("Shift", mode))
+      {
+        return 0
+      }
+    }
+    if (InStr("^", ModKeys))
+    {
+      if (!GetKeyState("Control", mode))
+      {
+        return 0
+      }
+    }
+    if (InStr("!", ModKeys))
+    {
+      if (!GetKeyState("Alt", mode))
+      {
+        return 0
+      }
+    }
+    if (InStr("#", ModKeys))
+    {
+      if (!GetKeyState("Win", mode))
+      {
+        return 0
+      }
+    }
+
+    return GetKeyState(RestKeys, mode)
+  }
+  else
+  {
+    return GetKeyState(keys, mode)
+  }
 }
 
 isLayerComplete(key)
@@ -146,7 +203,7 @@ isLayerComplete(key)
       {
         lsize := lsize + 1
         ; MsgBox % layer_name " has key " lkey
-        if (!GetKeyState(lkey, "P"))
+        if (!GetModKeyState(lkey, "P"))
         {
           ; MsgBox % layer_name " is not complete as " lkey " is not down"
           complete := 0
@@ -177,7 +234,6 @@ isLayerComplete(key)
     {
       ; Set active layer.
       TB_Layer := tmp_layer
-      ; MsgBox % key " => complete[" tmp_layer "]" clayers
 
       ; Mark the keys of the layer as down.
       layer := TB_Layers[tmp_layer]
@@ -326,6 +382,19 @@ getLayerKeys(key)
   return layer_keys
 }
 
+getLayerFromAlias(layer_alias)
+{
+  Global TB_LayerAliases
+
+  tmp_layer := TB_LayerAliases[layer_alias]
+  if (StrLen(tmp_layer) <= 0)
+  {
+    tmp_layer := layer_alias
+  }
+  
+  return tmp_layer
+}
+
 getDownKey(key) {
   keys := getKey(key)
 
@@ -340,6 +409,8 @@ getDownKey(key) {
       layer := "Alpha"
     }
   }
+
+  layer := getLayerFromAlias(layer)
 
   key_down := layer " Down"
   
