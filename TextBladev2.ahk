@@ -11,6 +11,7 @@ Global TB_LayerAliases := {}
 Global TB_Layout
 
 IniRead, TB_Layout, TextBladev2.ini, Config, Layout, "QWERTY"
+IniRead, TB_KeyDelay, TextBladev2.ini, Config, KeyDelay, 40
 
 Global TB_LayoutSheet := "Keys." . TB_Layout
 Global TB_LayoutTable := "HotKeys." . TB_Layout
@@ -33,31 +34,6 @@ if not(xls)
   xls.Visible := False
 }
 
-
-; Load hotkeys.
-Critical 10000
-For Key in xls.Worksheets(TB_LayoutSheet).Range(TB_LayoutTable . "[Hotkey]")
-{
-  value := Key.Value2
-
-  ; Loop over header.
-  key_entry := {key: value}
-  For Col in xls.Worksheets(TB_LayoutSheet).Range(TB_LayoutTable . "[#Headers]")
-  {
-    heading := Col.Value2
-    col_value := Col.Offset(Key.Row - 1 , 0).Value2
-    key_entry[heading] := col_value
-  }
-  Col := ""
-
-  ; MsgBox % key_entry["Hotkey"]
-  addKeyEntry(value, key_entry)
-
-  ; Just the key
-  Hotkey, %value%, DoHotKeyDown
-  Hotkey, %value% Up, DoHotKeyUp
-}
-Key := ""
 
 ; Load layers
 For Layer in xls.Worksheets("Layers").Range("Layers[Layer]")
@@ -99,6 +75,48 @@ For LayerAlias in xls.Worksheets("Layer Aliases").Range("LayerAliases[LayerAlias
 }
 LayerAlias := ""
 
+; Load hotkeys.
+Critical 10000
+For Key in xls.Worksheets(TB_LayoutSheet).Range(TB_LayoutTable . "[Hotkey]")
+{
+  value := Key.Value2
+
+  ; Loop over header.
+  key_entry := {key: value}
+  For Col in xls.Worksheets(TB_LayoutSheet).Range(TB_LayoutTable . "[#Headers]")
+  {
+    heading := Col.Value2
+    col_value := Col.Offset(Key.Row - 1 , 0).Value2
+    key_entry[heading] := col_value
+  }
+  Col := ""
+
+  ; MsgBox % key_entry["Hotkey"]
+  addKeyEntry(value, key_entry)
+
+  ; Just the key
+  if (isLayerKey(value))
+  {
+    isSpace := RegExMatch(value, "Space", theKeys)
+    if (isSpace)
+    {
+      Hotkey, %value%, DoSpaceHotKeyDown
+      Hotkey, %value% Up, DoSpaceHotKeyUp
+    }
+    else
+    {
+      Hotkey, %value%, DoLayerHotKeyDown
+      Hotkey, %value% Up, DoLayerHotKeyUp
+    }
+  }
+  else
+  {
+    Hotkey, %value%, DoHotKeyDown
+    Hotkey, %value% Up, DoHotKeyUp
+  }
+}
+Key := ""
+
 ; Close Excel.
 wb.Close(false)
 xls.Quit
@@ -133,28 +151,28 @@ GetModKeyState(keys, mode := "P")
   {
     StringRight, RestKeys, keys, StrLen(keys) - StrLen(ModKeys)
 
-    if (InStr("+", ModKeys))
+    if (InStr(ModKeys, "+"))
     {
       if (!GetKeyState("Shift", mode))
       {
         return 0
       }
     }
-    if (InStr("^", ModKeys))
+    if (InStr(ModKeys, "^"))
     {
       if (!GetKeyState("Control", mode))
       {
         return 0
       }
     }
-    if (InStr("!", ModKeys))
+    if (InStr(ModKeys, "!"))
     {
       if (!GetKeyState("Alt", mode))
       {
         return 0
       }
     }
-    if (InStr("#", ModKeys))
+    if (InStr(ModKeys, "#"))
     {
       if (!GetKeyState("Win", mode))
       {
@@ -443,6 +461,51 @@ getUpKey(key) {
 DoHotKeyDown:
   Critical, 1000
   Global TB_KeyDelay
+  Global TB_Layer
+  key := ""
+  hkey := A_ThisHotKey
+  if (!isKeyDown(hkey))
+  {
+    k := getKey(hkey)
+    kdelay := k["Delay"]
+    if (!kdelay)
+    {
+      kdelay := TB_KeyDelay
+    }
+
+    if (!isLayerComplete(hkey))
+    {
+      setKeyDown(hkey, TB_Layer)
+    }
+  }
+  else
+  {
+    ; MsgBox % "THERE"
+  }
+  key := getDownKey(hkey)
+
+  SendInput, %key%
+  return
+
+DoHotKeyUp:
+  Critical, 1000
+  Global TB_LayerKeys
+  Global TB_ActiveLayers
+  StringLeft, this_key, A_ThisHotKey, StrLen(A_ThisHotKey) - 3
+
+  key := getUpKey(this_key)
+
+  SendInput, %key%
+  ; MsgBox % "Deleting key " this_key
+  deleteKeyDown(this_key)
+
+  return
+
+
+DoLayerHotKeyDown:
+  Critical, 1000
+  Global TB_KeyDelay
+  Global TB_Layer
   key := ""
   hkey := A_ThisHotKey
   if (!isKeyDown(hkey))
@@ -469,10 +532,11 @@ DoHotKeyDown:
   SendInput, %key%
   return
 
-DoHotKeyUp:
+DoLayerHotKeyUp:
   Critical, 1000
   Global TB_LayerKeys
   Global TB_ActiveLayers
+  Global TB_Layer
   StringLeft, this_key, A_ThisHotKey, StrLen(A_ThisHotKey) - 3
 
   key := getUpKey(this_key)
@@ -507,6 +571,88 @@ DoHotKeyUp:
     TB_Layer := active_layer
   }
   return
+
+DoSpaceHotKeyDown:
+  Critical, 1000
+  Global TB_KeyDelay
+  Global TB_Layer
+  key := ""
+  hkey := A_ThisHotKey
+  if (!isKeyDown(hkey))
+  {
+    k := getKey(hkey)
+    kdelay := k["Delay"]
+    if (!kdelay)
+    {
+      kdelay := TB_KeyDelay
+    }
+    while (kdelay > 0 AND GetKeyState("Space", "P"))
+    {
+      ; KeyWait, %hkey%, T%kdelay%
+      MySleep(10)
+      kdelay := kdelay - 10
+    }
+    if (GetKeyState("Space", "P"))
+    {
+      if (!isLayerComplete(hkey))
+      {
+        setKeyDown(hkey, TB_Layer)
+      }
+    }
+    else
+    {
+      setKeyDown(hkey, TB_Layer)
+    }
+  }
+  else
+  {
+    ; MsgBox % "THERE"
+  }
+  key := getDownKey(hkey)
+
+  SendInput, %key%
+  return
+
+DoSpaceHotKeyUp:
+  Critical, 1000
+  Global TB_LayerKeys
+  Global TB_ActiveLayers
+  Global TB_Layer
+  StringLeft, this_key, A_ThisHotKey, StrLen(A_ThisHotKey) - 3
+
+  key := getUpKey(this_key)
+
+  SendInput, %key%
+  ; MsgBox % "Deleting key " this_key
+  deleteKeyDown(this_key)
+
+  ; Remove active layers for key.
+  if (isLayerKey(this_key))
+  {
+    ; Delete active layers for this key.
+    layers := TB_LayerKeys[this_key]
+    For layer_name in layers
+    {
+      TB_ActiveLayers.Delete(layer_name)
+    }
+
+    ; Find which layer is now active.
+    active_layer := "Alpha"
+    lkey_size := 0
+    For layer in TB_ActiveLayers
+    {
+      if (TB_ActiveLayers[layer] > lkey_size)
+      {
+        lkey_size := TB_ActiveLayers[layer]
+        active_layer := layer
+      }
+    }
+
+    ; Set the active layer.
+    TB_Layer := active_layer
+  }
+  return
+
 
 OnExit:
   xls.Quit
