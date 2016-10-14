@@ -15,7 +15,6 @@ Global TB_ModifierKeys := {}
 Global TB_ModifierDelay := {}
 Global TB_Modifier := {}
 Global TB_ActiveModifiers := {}
-Global TB_ModKeys := ""
 Global TB_ModKeysDown := ""
 Global TB_ModKeysUp := ""
 
@@ -373,7 +372,6 @@ isComplexComplete(key)
   Global TB_Layers
   Global TB_Layer
   Global TB_ActiveLayers
-  Global TB_ModKeys
   Global TB_ModKeysDown
   Global TB_ModKeysUp
 
@@ -468,16 +466,14 @@ isComplexComplete(key)
       ; Set active modifier.
       TB_Modifier := tmp_modifier
 
-      TB_ModKeys := ""
       TB_ModKeysDown := ""
       TB_ModKeysUp := ""
       For modifier in TB_ActiveModifiers
       {
-        TB_ModKeys := TB_ModKeys TB_Modifiers[modifier].key_down
         TB_ModKeysDown := TB_ModKeysDown TB_Modifiers[modifier].key_down
         TB_ModKeysUp := TB_ModKeysUp TB_Modifiers[modifier].key_up
       }
-      ; MsgBox % "Mod keys are " TB_ModKeys 
+      ; MsgBox % "Mod keys are " TB_ModKeysDown 
 
       ; Mark the keys of the modifier as down.
       modifier := TB_Modifiers[tmp_modifier]
@@ -639,7 +635,6 @@ getLayerFromAlias(layer_alias)
 }
 
 getDownKey(key) {
-  Global TB_ModKeys
   Global TB_ModKeysDown
   Global TB_ModKeysUp
   keys := getKey(key)
@@ -664,6 +659,7 @@ getDownKey(key) {
   If (StrLen(TB_ModKeysDown) > 0)
   {
     the_key := TB_ModKeysDown the_key TB_ModKeysUp
+    ; MsgBox % "Will send: " the_key
   }
   ; MsgBox % key_down " => " the_key
   return the_key
@@ -776,7 +772,6 @@ DoComplexHotKeyUp:
   Global TB_LayerKeys
   Global TB_ActiveLayers
   Global TB_Layer
-  Global TB_ModKeys
   Global TB_ModKeysDown
   Global TB_ModKeysUp
   Global TB_ActiveModifiers
@@ -834,12 +829,10 @@ DoComplexHotKeyUp:
     ; Find which modifier is now active.
     active_modifier := ""
     lkey_size := 0
-    TB_ModKeys := ""
     TB_ModKeysDown := ""
     TB_ModKeysUp := ""
     For modifier in TB_ActiveModifiers
     {
-      TB_ModKeys := TB_ModKeys TB_Modifiers[modifier].key_down
       TB_ModKeysDown := TB_ModKeysDown TB_Modifiers[modifier].key_down
       TB_ModKeysUp := TB_ModKeysUp TB_Modifiers[modifier].key_up
       if (TB_ActiveModifiers[modifier] > lkey_size)
